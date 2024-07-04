@@ -1,0 +1,25 @@
+{
+  "name": "@itsmrmonday/jsipc",
+  "version": "1.0.0",
+  "description": "IPC bindings for PyIPC, a electron IPC replacement written in Python",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/its-mr-monday/jsipc.git"
+  },
+  "keywords": [
+    "ipc"
+  ],
+  "author": "Cyber M Inc",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/its-mr-monday/jsipc/issues"
+  },
+  "homepage": "https://github.com/its-mr-monday/jsipc#readme",
+  "dependencies": {
+    "socket.io-client": "^4.7.5"
+  }
+}
