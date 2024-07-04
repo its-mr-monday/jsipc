@@ -1,7 +1,8 @@
 const io = require('socket.io-client');
 
 class JsIPC {
-    constructor(url = 'http://localhost:5000') {
+    constructor(port = 5000) {
+        let url = `http://localhost:${port}`;
         this.socket = io(url);
         this.handlers = {};
 
