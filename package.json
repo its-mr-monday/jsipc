@@ -1,6 +1,6 @@
 {
   "name": "@itsmrmonday/jsipc",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "IPC bindings for PyIPC, a electron IPC replacement written in Python",
   "main": "index.js",
   "scripts": {

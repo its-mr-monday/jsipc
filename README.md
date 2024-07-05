@@ -4,7 +4,7 @@ This project is solely used because I hate using js for IPC controls
 
 This is to be used with the following pyton3 server:
 
-(https://github.com/its-mr-monday/pyipc)[pyipc]
+[PyIPC](https://github.com/its-mr-monday/pyipc)
 
 
 
