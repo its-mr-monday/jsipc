@@ -22,6 +22,14 @@ class JsIPC {
         });
     }
 
+    close() {
+        this.socket.close();
+    }
+    
+    dispose() {
+        this.socket.close();
+    }
+
     on(channel, handler) {
         this.handlers[channel] = handler;
         this.socket.on(channel, handler);
