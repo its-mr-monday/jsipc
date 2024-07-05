@@ -1,3 +1,11 @@
+/*
+    Copyright 2024 by its-mr-monday
+    All rights reserved
+    This file is part of the jsipc library, and is released 
+    under the "MIT License Agreement". Please see the LICENSE file that 
+    should have been included as part of this package
+*/
+
 const io = require('socket.io-client');
 
 /**
@@ -22,18 +30,14 @@ class JsIPC {
             console.log('Disconnected from server');
         });
 
-        this.socket.on('message', (data) => {
-            const { channel, payload, room } = data;
+        this.socket.on('message', (payload) => {
+            const channel = payload['channel'];
+            const data = payload['data'];
+            let room = payload['room'] || null;
             if (room && this.roomHandlers[room] && this.roomHandlers[room][channel]) {
-                this.roomHandlers[room][channel](payload);
+                this.roomHandlers[room][channel](data);
             } else if (this.handlers[channel]) {
-                this.handlers[channel](payload);
-            }
-        });
-
-        this.socket.onAny((eventName, ...args) => {
-            if (this.handlers[eventName]) {
-                this.handlers[eventName](...args);
+                this.handlers[channel](data);
             }
         });
     }
@@ -49,7 +53,7 @@ class JsIPC {
      * Alias for close() method
      */
     dispose() {
-        this.socket.close();
+        this.close();
     }
 
     /**
@@ -59,7 +63,6 @@ class JsIPC {
      */
     on(channel, handler) {
         this.handlers[channel] = handler;
-        this.socket.on(channel, handler);
     }
 
     /**
@@ -80,10 +83,7 @@ class JsIPC {
      * @param {string} channel - The channel to stop listening on
      */
     off(channel) {
-        if (this.handlers[channel]) {
-            this.socket.off(channel, this.handlers[channel]);
-            delete this.handlers[channel];
-        }
+        delete this.handlers[channel];
     }
 
     /**
@@ -92,8 +92,11 @@ class JsIPC {
      * @param {string} channel - The channel to stop listening on within the room
      */
     offRoom(room, channel) {
-        if (this.roomHandlers[room] && this.roomHandlers[room][channel]) {
+        if (this.roomHandlers[room]) {
             delete this.roomHandlers[room][channel];
+            if (Object.keys(this.roomHandlers[room]).length === 0) {
+                delete this.roomHandlers[room];
+            }
         }
     }
 
@@ -104,11 +107,11 @@ class JsIPC {
      * @param {string} [room=null] - The room to emit to (if any)
      */
     emit(channel, data, room = null) {
-        if (room) {
-            this.socket.emit('message', { channel, payload: data, room });
-        } else {
-            this.socket.emit(channel, data);
+        const payload = { channel, data };
+        if (room !== null) {
+            payload.room = room;
         }
+        this.socket.emit('message', payload);
     }
 
     /**
