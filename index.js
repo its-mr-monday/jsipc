@@ -70,11 +70,11 @@ class JsIPC {
      * Invoke a remote procedure and wait for its response.
      * 
      * @param {string} event - The name of the event to invoke.
-     * @param {any} data - The data to send with the event.
+     * @param {any} [data={}] - The data to send with the event. Defaults to an empty object.
      * @param {number} [timeout=15000] - Maximum time to wait for a response, in milliseconds.
      * @returns {Promise<any>} - A promise that resolves with the response data.
      */
-    invoke(event, data, timeout = 15000) {
+    invoke(event, data = {}, timeout = 15000) {
         return new Promise((resolve, reject) => {
             const response_id = this.generateUUID();
             if (this.logger) console.log(`Invoking remote procedure '${event}':`, { event, data, response_id });
