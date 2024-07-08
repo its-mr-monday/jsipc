@@ -37,7 +37,7 @@ const JsIPC = require('@itsmrmonday/jsipc');
 ### Constructor
 
 ```javascript
-new JsIPC(port = 5000)
+new JsIPC(port = 5000, logger = false)
 ```
 
 Creates a new JsIPC instance.

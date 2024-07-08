@@ -10,90 +10,107 @@ const io = require('socket.io-client');
 
 class JsIPC {
     /**
-     * Create a new JsIPC instance
-     * @param {number} [port=5000] - The port number to connect to
+     * JsIPC class for inter-process communication using Socket.IO.
+     * 
+     * @param {number} port - The port on which the server will run.
+     * @param {boolean} logger - Flag to enable or disable logging.
      */
-    constructor(port = 5000) {
+    constructor(port = 5000, logger = false) {
         this.socket = io(`http://localhost:${port}`);
         this.handlers = {};
+        this.pendingResponses = {};
+        this.logger = logger;
 
-        this.socket.on('message', async (payload) => {
+        this.socket.on('connect', () => {
+            if (this.logger) console.log('Connected to PyIPC server');
+        });
+
+        this.socket.on('disconnect', () => {
+            if (this.logger) console.log('Disconnected from PyIPC server');
+        });
+
+        this.socket.on('message', (payload) => {
+            if (this.logger) console.log('Received message:', payload);
             const { event, data, response_id } = payload;
-            if (this.handlers[event]) {
+            if (response_id && this.pendingResponses[response_id]) {
+                const { resolve, reject } = this.pendingResponses[response_id];
+                delete this.pendingResponses[response_id];
+                resolve(data);
+            } else if (this.handlers[event]) {
                 try {
-                    const result = await this.handlers[event](data);
+                    const result = this.handlers[event](data);
                     if (response_id) {
-                        this.socket.emit(response_id, result);
+                        if (this.logger) console.log(`Sending response for event: ${event}`);
+                        this.socket.emit('message', { event, data: result, response_id });
                     }
                 } catch (error) {
-                    console.error(`Error in handler for event ${event}:`, error);
+                    if (this.logger) console.error(`Error in handler for event ${event}:`, error);
                     if (response_id) {
-                        this.socket.emit(response_id, { error: error.message });
+                        this.socket.emit('message', { event, error: error.message, response_id });
                     }
                 }
+            } else {
+                if (this.logger) console.warn(`No handler found for event: ${event}`);
             }
         });
     }
 
     /**
-     * Register a handler for a specific event
-     * @param {string} event - The event to listen for
-     * @param {function} handler - The function to handle the event
+     * Register an event handler.
+     * 
+     * @param {string} event - The name of the event to handle.
+     * @param {function} handler - The function to handle the event.
      */
     on(event, handler) {
         this.handlers[event] = handler;
+        if (this.logger) console.log(`Registered handler for event: ${event}`);
     }
 
     /**
-     * Remove a handler for a specific event
-     * @param {string} event - The event to stop listening for
+     * Invoke a remote procedure and wait for its response.
+     * 
+     * @param {string} event - The name of the event to invoke.
+     * @param {any} data - The data to send with the event.
+     * @param {number} [timeout=15000] - Maximum time to wait for a response, in milliseconds.
+     * @returns {Promise<any>} - A promise that resolves with the response data.
      */
-    off(event) {
-        delete this.handlers[event];
-    }
-
-    /**
-     * Invoke a remote procedure and wait for its response
-     * @param {string} event - The event name of the remote procedure
-     * @param {*} data - The data to send with the invocation
-     * @returns {Promise<*>} The response from the remote procedure
-     */
-    async invoke(event, data) {
+    invoke(event, data, timeout = 15000) {
         return new Promise((resolve, reject) => {
             const response_id = this.generateUUID();
+            if (this.logger) console.log(`Invoking remote procedure '${event}':`, { event, data, response_id });
             this.socket.emit('message', { event, data, response_id });
 
-            const responseHandler = (response) => {
-                this.socket.off(response_id, responseHandler);
-                if (response && response.error) {
-                    reject(new Error(response.error));
-                } else {
-                    resolve(response);
-                }
-            };
+            this.pendingResponses[response_id] = { resolve, reject };
 
-            this.socket.on(response_id, responseHandler);
+            setTimeout(() => {
+                if (this.pendingResponses[response_id]) {
+                    delete this.pendingResponses[response_id];
+                    const error = new Error(`Timeout waiting for response to event '${event}'`);
+                    if (this.logger) console.error(error);
+                    reject(error);
+                }
+            }, timeout);
         });
     }
 
     /**
-     * Generate a random 32-character string of alphabetic characters
-     * @returns {string} A unique identifier string
-     */
-    generateUUID() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        let result = '';
-        for (let i = 0; i < 32; i++) {
-            result += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        return result;
-    }
-
-    /**
-     * Close the Socket.IO connection
+     * Close the Socket.IO connection.
      */
     close() {
         this.socket.close();
+        if (this.logger) console.log('JsIPC connection closed');
+    }
+
+    /**
+     * Generate a unique identifier for response tracking.
+     * 
+     * @returns {string} - A unique identifier.
+     */
+    generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
     }
 }
 
