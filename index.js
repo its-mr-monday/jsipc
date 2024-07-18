@@ -38,7 +38,8 @@ class JsIPC {
                 resolve(data);
             } else if (this.handlers[event]) {
                 try {
-                    const result = this.handlers[event](data);
+                    const handler = this.handlers[event];
+                    const result = handler.length === 0 ? handler() : handler(data);
                     if (response_id) {
                         if (this.logger) console.log(`Sending response for event: ${event}`);
                         this.socket.emit('message', { event, data: result, response_id });
@@ -64,6 +65,22 @@ class JsIPC {
     on(event, handler) {
         this.handlers[event] = handler;
         if (this.logger) console.log(`Registered handler for event: ${event}`);
+    }
+
+    /**
+     * Remove an event handler.
+     * 
+     * @param {string} event - The name of the event to remove the handler for.
+     * @returns {boolean} - True if a handler was removed, false if no handler was found for the event.
+     */
+    off(event) {
+        if (this.handlers.hasOwnProperty(event)) {
+            delete this.handlers[event];
+            if (this.logger) console.log(`Removed handler for event: ${event}`);
+            return true;
+        }
+        if (this.logger) console.warn(`No handler found to remove for event: ${event}`);
+        return false;
     }
 
     /**
