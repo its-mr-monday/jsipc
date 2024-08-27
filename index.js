@@ -8,6 +8,13 @@
 
 const io = require('socket.io-client');
 
+class JsIPCException extends Error {
+    constructor(message) {
+        super(message);
+        this.name = this.constructor.name;
+    }
+}
+
 class JsIPC {
     /**
      * JsIPC class for inter-process communication using Socket.IO.
@@ -102,7 +109,7 @@ class JsIPC {
             setTimeout(() => {
                 if (this.pendingResponses[response_id]) {
                     delete this.pendingResponses[response_id];
-                    const error = new Error(`Timeout waiting for response to event '${event}'`);
+                    const error = new JsIPCException(`Timeout waiting for response to event '${event}'`);
                     if (this.logger) console.error(error);
                     reject(error);
                 }
